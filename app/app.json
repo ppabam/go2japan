@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Go2Japan",
+    "slug": "go2japan",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "go2japan",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#1e272e",
+    "primaryColor": "#ff4757",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.ppabam.go2japan",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1e272e"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.ppabam.go2japan",
+      "buildNumber": "1",
+      "supportsTablet": true
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#1e272e"
+        }
+      ],
+      "expo-status-bar"
+    ]
+  }
+}

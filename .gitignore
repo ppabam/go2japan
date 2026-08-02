@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# 네이티브 앱용 단일 파일 빌드 산출물
+dist-app

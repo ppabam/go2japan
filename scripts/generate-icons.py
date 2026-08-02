@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""PWA 아이콘 생성기.
+"""아이콘 생성기.
 
-manifest 가 참조하는 아이콘 파일들을 public/ 에 만든다.
+두 곳에 쓰인다.
+  public/    PWA manifest 가 참조하는 아이콘
+  app/assets Expo 네이티브 앱 아이콘과 스플래시
+
 결과물은 저장소에 커밋되어 있으므로 평소에는 실행할 필요가 없다.
 아이콘 디자인을 바꿀 때만 다시 돌린다.
 
@@ -16,6 +19,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public"
+APP_ASSETS = ROOT / "app" / "assets"
 
 GLYPH = "あ"
 BG_TOP = (42, 53, 64)  # #2a3540
@@ -86,12 +90,17 @@ def rounded(image, radius_ratio=0.22):
     return output
 
 
-def build(size, glyph_ratio=0.62, round_corners=True):
+def build(size, glyph_ratio=0.62, round_corners=True, transparent=False):
+    if transparent:
+        # 안드로이드 어댑티브 아이콘과 스플래시는 배경을 앱이 따로 칠한다.
+        canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        return draw_glyph(canvas, glyph_ratio)
+
     icon = draw_glyph(gradient(size), glyph_ratio)
     return rounded(icon) if round_corners else icon.convert("RGBA")
 
 
-def main():
+def write_web_icons():
     PUBLIC.mkdir(exist_ok=True)
 
     build(192).save(PUBLIC / "pwa-192x192.png")
@@ -103,10 +112,25 @@ def main():
     # iOS 는 자체적으로 모서리를 둥글게 깎으므로 사각형 그대로 둔다.
     build(180, round_corners=False).save(PUBLIC / "apple-touch-icon.png")
 
-    favicon = build(256)
-    favicon.save(PUBLIC / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)])
+    build(256).save(PUBLIC / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)])
+    yield from sorted(PUBLIC.glob("*"))
 
-    for path in sorted(PUBLIC.glob("*")):
+
+def write_app_icons():
+    if not APP_ASSETS.parent.exists():
+        return
+    APP_ASSETS.mkdir(parents=True, exist_ok=True)
+
+    # 스토어와 런처가 쓰는 기본 아이콘. 두 OS 모두 자기 방식으로 모서리를 깎는다.
+    build(1024, round_corners=False).save(APP_ASSETS / "icon.png")
+    # 어댑티브 아이콘 전경. 바깥 1/3 은 잘려나갈 수 있어 글자를 작게 둔다.
+    build(1024, glyph_ratio=0.4, transparent=True).save(APP_ASSETS / "adaptive-icon.png")
+    build(512, glyph_ratio=0.72, transparent=True).save(APP_ASSETS / "splash-icon.png")
+    yield from sorted(APP_ASSETS.glob("*"))
+
+
+def main():
+    for path in [*write_web_icons(), *write_app_icons()]:
         print(f"  {path.relative_to(ROOT)}  {path.stat().st_size:,} bytes")
 
 
