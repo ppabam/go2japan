@@ -374,10 +374,28 @@ body {
   animation: petPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* 설렁설렁: 가만히 있을 때 제자리에서 느리게 오간다 */
-.cat-idle {
-  animation: catPace 5s ease-in-out infinite;
+/* 설렁설렁: 걷기 모드에서는 화면을 오가고, 초상화 모드에서는 숨만 쉰다 */
+.cat-variant-walking.cat-idle {
+  animation: catRoam 12s ease-in-out infinite;
 }
+.cat-variant-portrait.cat-idle .cat-body {
+  animation: catBreathe 3s ease-in-out infinite;
+  transform-origin: 50% 90px;
+}
+.cat-variant-portrait.cat-idle .cat-head {
+  animation: catHeadBob 3s ease-in-out infinite;
+  transform-origin: 50% 46px;
+}
+.cat-variant-portrait.cat-idle .cat-ear-left, 
+.cat-variant-portrait.cat-idle .cat-ear-inner-left {
+  animation: earTwitch 6s infinite;
+  transform-origin: 22px 35px;
+}
+.cat-eyes-normal {
+  animation: catBlink 5s infinite;
+  transform-origin: 50% 45px;
+}
+
 .cat-happy {
   animation: catHop 0.6s ease-in-out;
 }
@@ -390,7 +408,7 @@ body {
 
 /* 꼬리는 기분에 따라 흔드는 속도가 다르다 */
 .cat-tail {
-  transform-origin: 76px 74px;
+  transform-origin: 65px 75px;
   animation: catTail 2.6s ease-in-out infinite;
 }
 .cat-happy .cat-tail {
@@ -439,15 +457,66 @@ body {
     opacity: 1;
   }
 }
-@keyframes catPace {
-  0%,
-  100% {
-    transform: translateX(-6px);
-  }
-  50% {
-    transform: translateX(6px);
-  }
+@keyframes catRoam {
+  0% { transform: translateX(0) scaleX(1); }
+  15% { transform: translateX(-35px) scaleX(1); }
+  20% { transform: translateX(-35px) scaleX(1) translateY(4px); }
+  25% { transform: translateX(-35px) scaleX(1) translateY(0); }
+  27% { transform: translateX(-35px) scaleX(-1); }
+  45% { transform: translateX(35px) scaleX(-1); }
+  50% { transform: translateX(35px) scaleX(-1) translateY(4px); }
+  55% { transform: translateX(35px) scaleX(-1) translateY(0); }
+  57% { transform: translateX(35px) scaleX(1); }
+  75% { transform: translateX(-10px) scaleX(1); }
+  80% { transform: translateX(-10px) scaleX(1) scaleY(0.95); }
+  85% { transform: translateX(-10px) scaleX(1) scaleY(1); }
+  100% { transform: translateX(0) scaleX(1); }
 }
+
+@keyframes catBreathe {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.02) translateY(-1px); }
+}
+@keyframes catHeadBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px) rotate(1deg); }
+}
+@keyframes catBlink {
+  0%, 95%, 100% { transform: scaleY(1); }
+  97.5% { transform: scaleY(0.1); }
+}
+@keyframes earTwitch {
+  0%, 90%, 100% { transform: rotate(0); }
+  92% { transform: rotate(-8deg); }
+  94% { transform: rotate(4deg); }
+  96% { transform: rotate(0); }
+}
+
+@keyframes walkLegFrontLeft {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-4px); }
+  50% { transform: translateY(0); }
+}
+@keyframes walkLegFrontRight {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-4px); }
+}
+@keyframes walkLegBackLeft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-4px); }
+}
+@keyframes walkLegBackRight {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-4px); }
+  50% { transform: translateY(0); }
+}
+
+.cat-idle .cat-leg-left { animation: walkLegFrontLeft 1.2s infinite; }
+.cat-idle .cat-leg-right { animation: walkLegFrontRight 1.2s infinite; }
+.cat-idle .cat-leg-back-left { animation: walkLegBackLeft 1.2s infinite; }
+.cat-idle .cat-leg-back-right { animation: walkLegBackRight 1.2s infinite; }
 @keyframes catHop {
   0%,
   100% {
