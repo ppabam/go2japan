@@ -10,30 +10,32 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { ChevronDown } from 'lucide-react';
-import { DEFAULT_WEIGHT, MASTERED_WEIGHT, tallyTotal } from '../lib/storage';
+import { DEFAULT_WEIGHT, EMPTY_TALLY, MASTERED_WEIGHT, missedCount } from '../lib/storage';
 import { lastDays } from '../lib/history';
 import { optionLabel } from '../lib/quiz';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const WEAKEST_COUNT = 5;
 const CHART_DAYS = 14;
 
 const GREEN = 'rgba(46, 213, 115, 0.85)';
 const RED = 'rgba(255, 71, 87, 0.85)';
 const GREY = 'rgba(164, 176, 190, 0.85)';
 
-function CharacterList({ items, emptyText }) {
+const TYPE_LABELS = { hiragana: '히라가나', katakana: '가타카나', word: '단어' };
+
+function ItemList({ items, emptyText, className = '' }) {
   if (items.length === 0) return <p className="settings-hint">{emptyText}</p>;
 
   return (
-    <ul className="char-list">
-      {items.map(({ character, note }) => (
-        <li key={character.char}>
+    <ul className={`char-list ${className}`}>
+      {items.map(({ item, note }) => (
+        <li key={item.char}>
           <span className="char-list-glyph" lang="ja">
-            {character.char}
+            {item.char}
           </span>
-          <span className="char-list-reading">{optionLabel(character)}</span>
+          <span className="char-list-reading">{optionLabel(item)}</span>
+          <span className="char-list-badge">{TYPE_LABELS[item.type] ?? ''}</span>
           {note && <span className="char-list-note">{note}</span>}
         </li>
       ))}
@@ -68,30 +70,38 @@ function ExpandableStat({ id, value, suffix, label, expanded, onToggle, children
   );
 }
 
-export default function Stats({ stats, weights, deck, mode = 'kana' }) {
+export default function Stats({ stats, weights, deck, learnables, mode = 'kana' }) {
   const [expanded, setExpanded] = useState(null);
 
   const total = stats.correct + stats.wrong + stats.idk;
   const accuracy = total === 0 ? 0 : Math.round((stats.correct / total) * 100);
   const unit = mode === 'words' ? '단어' : '글자';
 
-  const byChar = new Map(deck.map((character) => [character.char, character]));
-  const weightOf = (character) => weights[character.char] ?? DEFAULT_WEIGHT;
+  const weightOf = (item) => weights[item.char] ?? DEFAULT_WEIGHT;
+  const tallyOf = (item) => stats.charStats[item.char] ?? EMPTY_TALLY;
 
-  const mastered = deck.filter((character) => weightOf(character) <= MASTERED_WEIGHT);
+  // 마스터 비율은 지금 고른 학습 범위 기준이라 deck 을 쓴다.
+  const mastered = deck.filter((item) => weightOf(item) <= MASTERED_WEIGHT);
 
-  const weakest = [...deck]
-    .filter((character) => weightOf(character) > DEFAULT_WEIGHT)
-    .sort((a, b) => weightOf(b) - weightOf(a))
-    .slice(0, WEAKEST_COUNT);
+  // 틀린 것은 범위와 상관없이 전부 보여준다. 글자만 연습하다 단어로 넘어가도
+  // 앞서 틀린 것이 목록에서 사라지면 복습할 방법이 없다.
+  const mistakes = learnables
+    .map((item) => ({ item, missed: missedCount(tallyOf(item)), weight: weightOf(item) }))
+    .filter((row) => row.missed > 0 || row.weight > DEFAULT_WEIGHT)
+    .sort((a, b) => b.missed - a.missed || b.weight - a.weight)
+    .map(({ item, missed }) => ({
+      item,
+      // 이 버전 전에 틀린 것은 횟수 기록이 없다. 그때는 가중치만으로 목록에 올린다.
+      note: missed > 0 ? `${missed}번 틀림` : '',
+    }));
 
-  // 오늘 푼 것 중 지금 학습 범위에 있는 것만 보여준다.
-  const todayItems = Object.entries(stats.todayChars)
-    .filter(([char]) => byChar.has(char))
-    .sort((a, b) => tallyTotal(b[1]) - tallyTotal(a[1]))
-    .map(([char, tally]) => ({
-      character: byChar.get(char),
-      note: `${tally.correct}○ ${tally.wrong + tally.idk}✕`,
+  const todayItems = learnables
+    .map((item) => ({ item, tally: stats.todayChars[item.char] }))
+    .filter((row) => row.tally)
+    .sort((a, b) => missedCount(b.tally) - missedCount(a.tally))
+    .map(({ item, tally }) => ({
+      item,
+      note: `${tally.correct}○ ${missedCount(tally)}✕`,
     }));
 
   const days = lastDays(stats.history, CHART_DAYS);
@@ -157,10 +167,7 @@ export default function Stats({ stats, weights, deck, mode = 'kana' }) {
           expanded={expanded === 'today'}
           onToggle={() => toggle('today')}
         >
-          <CharacterList
-            items={todayItems}
-            emptyText={`오늘 푼 ${unit}가 아직 없습니다.`}
-          />
+          <ItemList items={todayItems} emptyText="오늘 푼 것이 아직 없습니다." />
         </ExpandableStat>
 
         <ExpandableStat
@@ -171,8 +178,8 @@ export default function Stats({ stats, weights, deck, mode = 'kana' }) {
           expanded={expanded === 'mastered'}
           onToggle={() => toggle('mastered')}
         >
-          <CharacterList
-            items={mastered.map((character) => ({ character }))}
+          <ItemList
+            items={mastered.map((item) => ({ item }))}
             emptyText={`아직 마스터한 ${unit}가 없습니다. 계속 맞히면 채워집니다.`}
           />
         </ExpandableStat>
@@ -186,12 +193,14 @@ export default function Stats({ stats, weights, deck, mode = 'kana' }) {
         <Bar data={dailyChart} options={dailyOptions} />
       </div>
 
-      {weakest.length > 0 && (
-        <div className="weak-list">
-          <h3 className="weak-list-title">🔥 제일 약한 {unit}</h3>
-          <CharacterList items={weakest.map((character) => ({ character }))} emptyText="" />
-        </div>
-      )}
+      <div className="weak-list">
+        <h3 className="weak-list-title">🔥 틀린 글자·단어 {mistakes.length}개</h3>
+        <ItemList
+          items={mistakes}
+          className="mistake-list"
+          emptyText="아직 틀린 게 없습니다. 이대로 가세요."
+        />
+      </div>
 
       <p className="stats-verdict">
         {stats.correct > stats.wrong + stats.idk

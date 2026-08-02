@@ -115,17 +115,19 @@ function normalizeHistory(saved) {
   return history;
 }
 
-// 오늘 어떤 글자를 풀었는지. 리포트에서 목록으로 보여준다.
-function normalizeTodayChars(saved) {
+// 글자·단어별 집계. 오늘치(todayChars)와 누적치(charStats) 둘 다 이 모양이다.
+function normalizeTallyMap(saved) {
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return {};
 
-  const todayChars = {};
+  const tallies = {};
   for (const [char, value] of Object.entries(saved)) {
     const tally = toTally(value);
-    if (tallyTotal(tally) > 0) todayChars[char] = tally;
+    if (tallyTotal(tally) > 0) tallies[char] = tally;
   }
-  return todayChars;
+  return tallies;
 }
+
+export const missedCount = (tally) => (tally ? tally.wrong + tally.idk : 0);
 
 // '오늘 푼 문제' 는 날짜가 바뀌면 0 부터 다시 센다.
 // 예전 버전은 날짜를 기록하지 않아 평생 누적 카운터였다.
@@ -137,7 +139,9 @@ export function normalizeStats(saved, todayKey) {
     today: toCount(saved?.today),
     todayDate: typeof saved?.todayDate === 'string' ? saved.todayDate : null,
     history: normalizeHistory(saved?.history),
-    todayChars: normalizeTodayChars(saved?.todayChars),
+    todayChars: normalizeTallyMap(saved?.todayChars),
+    // 누적 성적. 날짜가 바뀌어도 지우지 않는다. '틀린 것 전부 보기' 가 이걸 읽는다.
+    charStats: normalizeTallyMap(saved?.charStats),
   };
 
   if (stats.todayDate !== todayKey) {
