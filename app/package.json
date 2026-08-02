@@ -1,6 +1,6 @@
 {
   "name": "go2japan-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "main": "index.js",
   "description": "Go2Japan 웹앱을 WebView 로 감싼 안드로이드/iOS 앱",
