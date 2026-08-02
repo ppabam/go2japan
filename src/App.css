@@ -543,11 +543,28 @@ body {
 .char-list-reading {
   color: var(--text-secondary);
   flex: 1;
+  overflow-wrap: anywhere;
+}
+.char-list-badge {
+  flex: none;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 2px 8px;
 }
 .char-list-note {
+  flex: none;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--primary-color);
   font-variant-numeric: tabular-nums;
+}
+
+/* 틀린 목록은 다 보여주되, 길어지면 목록 안에서만 스크롤한다 */
+.mistake-list {
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .weak-list {

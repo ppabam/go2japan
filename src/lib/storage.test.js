@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   HISTORY_DAYS,
   MAX_WEIGHT,
+  missedCount,
   normalizeStats,
   normalizeUnknownWeight,
   normalizeWeights,
@@ -144,5 +145,41 @@ describe('normalizeStats — 일별 기록', () => {
       '2026-08-02',
     );
     expect(stats.history).toEqual({});
+  });
+});
+
+describe('normalizeStats — 누적 성적(charStats)', () => {
+  it('없던 저장본도 빈 객체로 채운다', () => {
+    expect(normalizeStats({ correct: 5 }, '2026-08-02').charStats).toEqual({});
+  });
+
+  it('날짜가 바뀌어도 지우지 않는다', () => {
+    // todayChars 와 달리 누적이라 날짜와 무관하게 남아야 '전부 보기' 가 된다.
+    const saved = {
+      todayDate: '2026-08-01',
+      todayChars: { あ: { correct: 1 } },
+      charStats: { あ: { correct: 4, wrong: 3 }, ねこ: { wrong: 2, idk: 1 } },
+    };
+    const stats = normalizeStats(saved, '2026-08-02');
+    expect(stats.todayChars).toEqual({});
+    expect(stats.charStats).toEqual({
+      あ: { correct: 4, wrong: 3, idk: 0 },
+      ねこ: { correct: 0, wrong: 2, idk: 1 },
+    });
+  });
+
+  it('깨진 값이어도 던지지 않는다', () => {
+    expect(normalizeStats({ charStats: 'broken' }, '2026-08-02').charStats).toEqual({});
+    expect(normalizeStats({ charStats: [1, 2] }, '2026-08-02').charStats).toEqual({});
+  });
+});
+
+describe('missedCount', () => {
+  it('오답과 모름을 합친다', () => {
+    expect(missedCount({ correct: 5, wrong: 2, idk: 3 })).toBe(5);
+  });
+
+  it('기록이 없으면 0', () => {
+    expect(missedCount(undefined)).toBe(0);
   });
 });

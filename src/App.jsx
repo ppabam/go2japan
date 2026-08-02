@@ -152,6 +152,7 @@ export default function App() {
 
         const day = rolled.history[today] ?? EMPTY_TALLY;
         const entry = rolled.todayChars[char] ?? EMPTY_TALLY;
+        const lifetime = rolled.charStats[char] ?? EMPTY_TALLY;
 
         return {
           ...rolled,
@@ -159,6 +160,10 @@ export default function App() {
           today: rolled.today + 1,
           history: { ...rolled.history, [today]: { ...day, [result]: day[result] + 1 } },
           todayChars: { ...rolled.todayChars, [char]: { ...entry, [result]: entry[result] + 1 } },
+          charStats: {
+            ...rolled.charStats,
+            [char]: { ...lifetime, [result]: lifetime[result] + 1 },
+          },
         };
       });
 
@@ -208,7 +213,13 @@ export default function App() {
       )}
 
       {view === 'stats' && (
-        <Stats stats={stats} weights={weights} deck={reportDeck} mode={mode} />
+        <Stats
+          stats={stats}
+          weights={weights}
+          deck={reportDeck}
+          learnables={LEARNABLES}
+          mode={mode}
+        />
       )}
 
       {view === 'settings' && (
