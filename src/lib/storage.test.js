@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  HISTORY_DAYS,
   MAX_WEIGHT,
   normalizeStats,
   normalizeUnknownWeight,
@@ -43,12 +44,12 @@ describe('normalizeWeights', () => {
 describe('normalizeStats', () => {
   it('날짜가 그대로면 오늘 카운트를 유지한다', () => {
     const saved = { correct: 3, wrong: 1, idk: 2, today: 6, todayDate: '2026-08-02' };
-    expect(normalizeStats(saved, '2026-08-02')).toEqual(saved);
+    expect(normalizeStats(saved, '2026-08-02')).toMatchObject(saved);
   });
 
   it('날짜가 바뀌면 오늘 카운트만 0 으로 되돌린다', () => {
     const saved = { correct: 3, wrong: 1, idk: 2, today: 6, todayDate: '2026-08-01' };
-    expect(normalizeStats(saved, '2026-08-02')).toEqual({
+    expect(normalizeStats(saved, '2026-08-02')).toMatchObject({
       correct: 3,
       wrong: 1,
       idk: 2,
@@ -58,7 +59,7 @@ describe('normalizeStats', () => {
   });
 
   it('날짜 정보가 없던 예전 저장본도 오늘 기준으로 초기화한다', () => {
-    expect(normalizeStats({ correct: 10, today: 999 }, '2026-08-02')).toEqual({
+    expect(normalizeStats({ correct: 10, today: 999 }, '2026-08-02')).toMatchObject({
       correct: 10,
       wrong: 0,
       idk: 0,
@@ -88,5 +89,60 @@ describe('normalizeUnknownWeight', () => {
   it('읽을 수 없으면 기본값', () => {
     expect(normalizeUnknownWeight(null, 5)).toBe(5);
     expect(normalizeUnknownWeight('abc', 5)).toBe(5);
+  });
+});
+
+describe('normalizeStats — 일별 기록', () => {
+  it('history 가 없던 예전 저장본도 빈 객체로 채운다', () => {
+    const stats = normalizeStats({ correct: 5 }, '2026-08-02');
+    expect(stats.history).toEqual({});
+    expect(stats.todayChars).toEqual({});
+  });
+
+  it('날짜 형식이 아닌 키는 버린다', () => {
+    const stats = normalizeStats(
+      { history: { '2026-08-01': { correct: 2 }, 어제: { correct: 9 } } },
+      '2026-08-02',
+    );
+    expect(Object.keys(stats.history)).toEqual(['2026-08-01']);
+  });
+
+  it('오래된 날짜는 최근 것만 남긴다', () => {
+    const history = {};
+    for (let day = 1; day <= 90; day += 1) {
+      history[`2026-01-${String(day % 28 || 28).padStart(2, '0')}`] = { correct: 1 };
+    }
+    expect(Object.keys(normalizeStats({ history }, '2026-08-02').history).length).toBeLessThanOrEqual(
+      HISTORY_DAYS,
+    );
+  });
+
+  it('날짜가 바뀌면 오늘 푼 글자 목록도 비운다', () => {
+    const saved = {
+      todayDate: '2026-08-01',
+      today: 12,
+      todayChars: { あ: { correct: 3 } },
+      history: { '2026-08-01': { correct: 12 } },
+    };
+    const stats = normalizeStats(saved, '2026-08-02');
+    expect(stats.todayChars).toEqual({});
+    expect(stats.today).toBe(0);
+    // 지난 날 기록은 남아 있어야 일별 차트가 그려진다
+    expect(stats.history['2026-08-01']).toMatchObject({ correct: 12 });
+  });
+
+  it('같은 날이면 오늘 푼 글자를 유지한다', () => {
+    const saved = { todayDate: '2026-08-02', today: 4, todayChars: { あ: { correct: 2, wrong: 1 } } };
+    expect(normalizeStats(saved, '2026-08-02').todayChars).toEqual({
+      あ: { correct: 2, wrong: 1, idk: 0 },
+    });
+  });
+
+  it('빈 집계는 버린다', () => {
+    const stats = normalizeStats(
+      { history: { '2026-08-01': { correct: 0, wrong: 0, idk: 0 } } },
+      '2026-08-02',
+    );
+    expect(stats.history).toEqual({});
   });
 });

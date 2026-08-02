@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Volume2 } from 'lucide-react';
+import Mascot from './Mascot';
 import { buildQuestion, optionLabel } from '../lib/quiz';
 
 const CORRECT_MESSAGES = ['오~ 천재인데?', '이걸 맞추다니!', '일본인 아니야?', '갓벽하다!', '폼 미쳤다 ㄷㄷ'];
@@ -13,11 +14,20 @@ const WRONG_MESSAGES = [
 ];
 
 // 맞혔을 때만 자동으로 넘어간다. 틀렸을 땐 정답을 읽을 시간을 뺏지 않는다.
-const AUTO_ADVANCE_MS = 1200;
+const AUTO_ADVANCE_MS = 1400;
 
 const randomOf = (messages) => messages[Math.floor(Math.random() * messages.length)];
 
-export default function Practice({ deck, weights, onAnswer }) {
+// 단어는 글자가 여러 개라 한 크기로 고정하면 좁은 화면에서 넘친다.
+const sizeBucket = (text) => {
+  const glyphs = [...text].length;
+  if (glyphs <= 1) return 'xl';
+  if (glyphs <= 2) return 'lg';
+  if (glyphs <= 4) return 'md';
+  return 'sm';
+};
+
+export default function Practice({ deck, weights, onAnswer, mode = 'kana' }) {
   const [question, setQuestion] = useState(null);
   const [answered, setAnswered] = useState(null);
 
@@ -67,7 +77,7 @@ export default function Practice({ deck, weights, onAnswer }) {
       message = randomOf(CORRECT_MESSAGES);
       confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
     } else if (isIdk) {
-      message = `정답: ${optionLabel(question.answer)} - 외워라 좀!`;
+      message = `정답: ${optionLabel(question.answer)}`;
     } else {
       message = `${randomOf(WRONG_MESSAGES)} (정답: ${optionLabel(question.answer)})`;
     }
@@ -133,27 +143,38 @@ export default function Practice({ deck, weights, onAnswer }) {
     return 'dimmed';
   };
 
+  const unit = mode === 'words' ? '단어' : '자';
+  const prompt = mode === 'words' ? '무슨 뜻일까요?' : '이건 뭘까요?';
+
   return (
     <div className="practice-container glass-panel">
       <div className="practice-toolbar">
-        <span className="deck-size">{deck.length}자 중</span>
+        <span className="deck-size">
+          {deck.length}
+          {unit} 중
+        </span>
         <button className="icon-btn" onClick={speak} aria-label="일본어 발음 듣기 (단축키 S)">
           <Volume2 size={32} aria-hidden="true" />
         </button>
       </div>
 
       <div className="flashcard">
-        <div className="character-display" lang="ja">
+        <div className="character-display" data-size={sizeBucket(question.answer.char)} lang="ja">
           {question.answer.char}
         </div>
       </div>
 
-      <div
-        className={`feedback-msg ${answered ? answered.result : ''}`}
-        role="status"
-        aria-live="polite"
-      >
-        {answered ? answered.message : '이건 뭘까요?'}
+      <div className="feedback-row">
+        <div className={`mascot ${answered ? 'reacting' : ''}`} key={answered?.result ?? 'idle'}>
+          <Mascot mood={answered ? answered.result : 'idle'} />
+        </div>
+        <p
+          className={`feedback-msg ${answered ? answered.result : ''}`}
+          role="status"
+          aria-live="polite"
+        >
+          {answered ? answered.message : prompt}
+        </p>
       </div>
 
       <div className="options-grid">
@@ -171,13 +192,14 @@ export default function Practice({ deck, weights, onAnswer }) {
           </button>
         ))}
 
+        {/* 답한 뒤에도 같은 칸을 써서 버튼 배치가 흔들리지 않게 한다 */}
         {answered ? (
           <button className="option-btn next-btn" onClick={advance}>
             다음 →
           </button>
         ) : (
           <button className="option-btn idk-btn" onClick={() => handleAnswer('idk')}>
-            🤷 모르겠음 (당당)
+            🤷 모르겠음
           </button>
         )}
       </div>

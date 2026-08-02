@@ -12,6 +12,7 @@ export const KEYS = {
   unknownWeight: `${PREFIX}unknown-weight`,
   script: `${PREFIX}script`,
   extended: `${PREFIX}extended`,
+  mode: `${PREFIX}mode`,
 };
 
 export const MIN_WEIGHT = 0.1;
@@ -77,10 +78,54 @@ export function normalizeWeights(saved, characters) {
   return normalized;
 }
 
+// 일별 기록을 무한정 쌓아두지 않는다. 차트는 최근 며칠만 보여준다.
+export const HISTORY_DAYS = 60;
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 const toCount = (value) => {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? Math.trunc(number) : 0;
 };
+
+const toTally = (value) => ({
+  correct: toCount(value?.correct),
+  wrong: toCount(value?.wrong),
+  idk: toCount(value?.idk),
+});
+
+export const tallyTotal = (tally) => tally.correct + tally.wrong + tally.idk;
+
+export const EMPTY_TALLY = { correct: 0, wrong: 0, idk: 0 };
+
+// 날짜별 집계. 키가 날짜 형식이 아니거나 너무 오래된 것은 버린다.
+function normalizeHistory(saved) {
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return {};
+
+  const dates = Object.keys(saved)
+    .filter((key) => ISO_DATE.test(key))
+    .sort()
+    .slice(-HISTORY_DAYS);
+
+  const history = {};
+  for (const date of dates) {
+    const tally = toTally(saved[date]);
+    if (tallyTotal(tally) > 0) history[date] = tally;
+  }
+  return history;
+}
+
+// 오늘 어떤 글자를 풀었는지. 리포트에서 목록으로 보여준다.
+function normalizeTodayChars(saved) {
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return {};
+
+  const todayChars = {};
+  for (const [char, value] of Object.entries(saved)) {
+    const tally = toTally(value);
+    if (tallyTotal(tally) > 0) todayChars[char] = tally;
+  }
+  return todayChars;
+}
 
 // '오늘 푼 문제' 는 날짜가 바뀌면 0 부터 다시 센다.
 // 예전 버전은 날짜를 기록하지 않아 평생 누적 카운터였다.
@@ -91,11 +136,14 @@ export function normalizeStats(saved, todayKey) {
     idk: toCount(saved?.idk),
     today: toCount(saved?.today),
     todayDate: typeof saved?.todayDate === 'string' ? saved.todayDate : null,
+    history: normalizeHistory(saved?.history),
+    todayChars: normalizeTodayChars(saved?.todayChars),
   };
 
   if (stats.todayDate !== todayKey) {
     stats.today = 0;
     stats.todayDate = todayKey;
+    stats.todayChars = {};
   }
 
   return stats;
