@@ -174,6 +174,9 @@ body {
 .btn-word {
   background: linear-gradient(135deg, #f0932b, #ffbe76);
 }
+.btn-pet {
+  background: linear-gradient(135deg, #9c88ff, #c8a2ff);
+}
 .btn-block {
   width: 100%;
 }
@@ -348,34 +351,85 @@ body {
   color: var(--text-secondary);
 }
 
-.mascot {
+.pet-slot {
   flex: none;
-  width: 68px;
-  height: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
-.mascot-svg {
+
+.pet {
+  width: 72px;
+  height: 72px;
+}
+.cat-svg {
   width: 100%;
   height: 100%;
   overflow: visible;
 }
+
 /* key 가 바뀌며 다시 마운트되므로 답할 때마다 애니메이션이 새로 돈다 */
-.mascot.reacting .mascot-svg {
-  animation: mascotPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.mascot-correct {
-  animation: mascotHop 0.6s ease-in-out;
-}
-.mascot-wrong {
-  animation: mascotShake 0.5s ease-in-out;
-}
-.mascot-sparkles {
-  animation: sparkle 0.9s ease-in-out infinite;
-}
-.mascot-tear {
-  animation: tearFall 1.1s ease-in infinite;
+.pet.reacting .cat-svg {
+  animation: petPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes mascotPop {
+/* 설렁설렁: 가만히 있을 때 제자리에서 느리게 오간다 */
+.cat-idle {
+  animation: catPace 5s ease-in-out infinite;
+}
+.cat-happy {
+  animation: catHop 0.6s ease-in-out;
+}
+.cat-sad {
+  animation: catSlump 0.5s ease-out;
+}
+.cat-hungry {
+  animation: catBeg 1.6s ease-in-out infinite;
+}
+
+/* 꼬리는 기분에 따라 흔드는 속도가 다르다 */
+.cat-tail {
+  transform-origin: 76px 74px;
+  animation: catTail 2.6s ease-in-out infinite;
+}
+.cat-happy .cat-tail {
+  animation-duration: 0.7s;
+}
+.cat-bored .cat-tail,
+.cat-sad .cat-tail {
+  animation-duration: 5s;
+}
+
+.cat-hearts {
+  animation: sparkle 0.9s ease-in-out infinite;
+}
+.cat-tear {
+  animation: tearFall 1.1s ease-in infinite;
+}
+.cat-zzz {
+  animation: zzzFloat 2.4s ease-in-out infinite;
+}
+.cat-bowl {
+  animation: sparkle 1.4s ease-in-out infinite;
+}
+
+.cat-meters {
+  display: flex;
+  gap: 8px;
+  font-size: 0.62rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+.cat-meter .pip {
+  color: var(--primary-color);
+}
+.cat-meter .pip.empty {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+@keyframes petPop {
   0% {
     transform: scale(0.4) rotate(-12deg);
     opacity: 0;
@@ -385,7 +439,16 @@ body {
     opacity: 1;
   }
 }
-@keyframes mascotHop {
+@keyframes catPace {
+  0%,
+  100% {
+    transform: translateX(-6px);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+}
+@keyframes catHop {
   0%,
   100% {
     transform: translateY(0);
@@ -397,16 +460,41 @@ body {
     transform: translateY(-4px);
   }
 }
-@keyframes mascotShake {
+@keyframes catSlump {
+  0% {
+    transform: translateY(-4px);
+  }
+  100% {
+    transform: translateY(2px);
+  }
+}
+@keyframes catBeg {
   0%,
   100% {
-    transform: translateX(0);
+    transform: translateY(0);
   }
-  25% {
-    transform: translateX(-5px);
+  50% {
+    transform: translateY(-3px);
   }
-  75% {
-    transform: translateX(5px);
+}
+@keyframes catTail {
+  0%,
+  100% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+@keyframes zzzFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-5px);
+    opacity: 0.8;
   }
 }
 @keyframes sparkle {
@@ -429,17 +517,6 @@ body {
   100% {
     transform: translateY(16px);
     opacity: 0;
-  }
-}
-
-@keyframes popIn {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
   }
 }
 
@@ -700,4 +777,115 @@ a.btn {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* わたしのねこ */
+.pet-page {
+  text-align: center;
+}
+.pet-portrait {
+  width: min(200px, 55vw);
+  margin: 0 auto;
+}
+.pet-portrait .cat-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.pet-status {
+  margin-top: 12px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.pet-status-hungry,
+.pet-status-sad {
+  color: var(--primary-color);
+}
+.pet-status-happy {
+  color: var(--secondary-color);
+}
+
+.pet-gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+}
+.pet-gauge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pet-gauge-label {
+  flex: none;
+  width: 4rem;
+  text-align: left;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+.pet-gauge-track {
+  flex: 1;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.pet-gauge-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease-out;
+}
+.tone-fullness .pet-gauge-fill {
+  background: linear-gradient(90deg, #f0932b, #ffbe76);
+}
+.tone-mood .pet-gauge-fill {
+  background: linear-gradient(90deg, #ff4757, #ff6b81);
+}
+.pet-gauge-value {
+  flex: none;
+  width: 3rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.pet-facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 24px;
+}
+.pet-facts div {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
+  padding: 12px 8px;
+}
+.pet-facts dt {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.pet-facts dd {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.pet-hint {
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.pet-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+.pet-actions .btn {
+  flex: 1;
+  font-size: 1rem;
+  padding: 16px 10px;
 }

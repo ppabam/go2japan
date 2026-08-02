@@ -13,6 +13,7 @@ export const KEYS = {
   script: `${PREFIX}script`,
   extended: `${PREFIX}extended`,
   mode: `${PREFIX}mode`,
+  cat: `${PREFIX}cat`,
 };
 
 export const MIN_WEIGHT = 0.1;

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Volume2 } from 'lucide-react';
-import Mascot from './Mascot';
+import Cat from './Cat';
+import CatMeters from './CatMeters';
+import { SLOW_ANSWER_MS, catMood } from '../lib/cat';
 import { buildQuestion, optionLabel } from '../lib/quiz';
 
 const CORRECT_MESSAGES = ['오~ 천재인데?', '이걸 맞추다니!', '일본인 아니야?', '갓벽하다!', '폼 미쳤다 ㄷㄷ'];
@@ -27,33 +29,51 @@ const sizeBucket = (text) => {
   return 'sm';
 };
 
-export default function Practice({ deck, weights, onAnswer, mode = 'kana' }) {
+export default function Practice({ deck, weights, cat, onAnswer, mode = 'kana' }) {
   const [question, setQuestion] = useState(null);
   const [answered, setAnswered] = useState(null);
+  // 답이 없는 채로 오래 두면 고양이가 지루해한다.
+  const [bored, setBored] = useState(false);
 
   // 가중치는 문제를 뽑을 때만 필요하다. state 로 의존하면 답을 고를 때마다
   // 가중치가 갱신되면서 문제가 즉시 다시 생성되어 피드백이 지워졌다.
   const weightsRef = useRef(weights);
   const timerRef = useRef(null);
+  const boredTimerRef = useRef(null);
+  const askedAtRef = useRef(0);
 
   useEffect(() => {
     weightsRef.current = weights;
   }, [weights]);
 
-  // deck 은 App 에서 memo 되어 있어서 학습 범위가 바뀔 때만 새 문제를 낸다.
-  useEffect(() => {
+  const startQuestion = (next) => {
     clearTimeout(timerRef.current);
-    setAnswered(null);
-    setQuestion(buildQuestion(deck, weightsRef.current));
-  }, [deck]);
-
-  useEffect(() => () => clearTimeout(timerRef.current), []);
-
-  const advance = () => {
-    clearTimeout(timerRef.current);
+    clearTimeout(boredTimerRef.current);
     timerRef.current = null;
     setAnswered(null);
-    setQuestion(buildQuestion(deck, weightsRef.current));
+    setBored(false);
+    setQuestion(next);
+    askedAtRef.current = Date.now();
+    boredTimerRef.current = setTimeout(() => setBored(true), SLOW_ANSWER_MS);
+  };
+
+  // deck 은 App 에서 memo 되어 있어서 학습 범위가 바뀔 때만 새 문제를 낸다.
+  // startQuestion 은 매 렌더마다 새로 만들어지지만 의존성에 넣지 않는다.
+  // 넣으면 렌더마다 문제가 다시 생성돼, 예전에 피드백이 지워지던 버그가 그대로 돌아온다.
+  useEffect(() => {
+    startQuestion(buildQuestion(deck, weightsRef.current));
+  }, [deck]);
+
+  useEffect(
+    () => () => {
+      clearTimeout(timerRef.current);
+      clearTimeout(boredTimerRef.current);
+    },
+    [],
+  );
+
+  const advance = () => {
+    startQuestion(buildQuestion(deck, weightsRef.current));
   };
 
   const speak = () => {
@@ -68,6 +88,8 @@ export default function Practice({ deck, weights, onAnswer, mode = 'kana' }) {
   const handleAnswer = (choice) => {
     if (!question || answered) return;
 
+    clearTimeout(boredTimerRef.current);
+    const elapsedMs = Date.now() - askedAtRef.current;
     const isIdk = choice === 'idk';
     const isCorrect = !isIdk && choice === question.answer.char;
     const result = isCorrect ? 'correct' : isIdk ? 'idk' : 'wrong';
@@ -83,7 +105,7 @@ export default function Practice({ deck, weights, onAnswer, mode = 'kana' }) {
     }
 
     setAnswered({ choice, result, message });
-    onAnswer({ char: question.answer.char, result });
+    onAnswer({ char: question.answer.char, result, elapsedMs });
 
     if (isCorrect) {
       timerRef.current = setTimeout(advance, AUTO_ADVANCE_MS);
@@ -145,6 +167,7 @@ export default function Practice({ deck, weights, onAnswer, mode = 'kana' }) {
 
   const unit = mode === 'words' ? '단어' : '자';
   const prompt = mode === 'words' ? '무슨 뜻일까요?' : '이건 뭘까요?';
+  const catFace = catMood(cat, { reaction: answered?.result ?? null, waiting: bored });
 
   return (
     <div className="practice-container glass-panel">
@@ -165,8 +188,12 @@ export default function Practice({ deck, weights, onAnswer, mode = 'kana' }) {
       </div>
 
       <div className="feedback-row">
-        <div className={`mascot ${answered ? 'reacting' : ''}`} key={answered?.result ?? 'idle'}>
-          <Mascot mood={answered ? answered.result : 'idle'} />
+        <div className="pet-slot">
+          {/* key 를 바꿔 다시 마운트시켜야 답할 때마다 애니메이션이 새로 돈다 */}
+          <div className={`pet ${answered ? 'reacting' : ''}`} key={answered?.result ?? 'idle'}>
+            <Cat mood={catFace} />
+          </div>
+          <CatMeters cat={cat} />
         </div>
         <p
           className={`feedback-msg ${answered ? answered.result : ''}`}
