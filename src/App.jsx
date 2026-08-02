@@ -6,9 +6,11 @@ import Practice from './components/Practice';
 import SettingsView from './components/SettingsView';
 import Stats from './components/Stats';
 import { allCharacters, selectDeck } from './data';
+import { words } from './words';
 import { dateKey, nextStreak, resumeStreak } from './lib/streak';
 import {
   DEFAULT_WEIGHT,
+  EMPTY_TALLY,
   KEYS,
   MAX_WEIGHT,
   MIN_WEIGHT,
@@ -23,9 +25,13 @@ import {
 } from './lib/storage';
 import './App.css';
 
-const VIEWS = ['home', 'practice', 'stats', 'settings'];
+const VIEWS = ['home', 'practice', 'words', 'stats', 'settings'];
 const DEFAULT_UNKNOWN_WEIGHT = 5;
 const CORRECT_WEIGHT_STEP = 0.5;
+
+// 글자와 단어가 각자 가중치를 갖는다. 저장본을 정규화할 때 둘 다 넘겨야
+// 새로 추가된 쪽의 가중치가 비어 출제가 망가지지 않는다.
+const LEARNABLES = [...allCharacters, ...words];
 
 const viewFromHash = () => {
   const hash = window.location.hash.replace(/^#\/?/, '');
@@ -38,7 +44,7 @@ export default function App() {
   const [view, setView] = useState(viewFromHash);
 
   const [weights, setWeights] = useState(() =>
-    normalizeWeights(loadJSON(KEYS.weights), allCharacters),
+    normalizeWeights(loadJSON(KEYS.weights), LEARNABLES),
   );
   const [stats, setStats] = useState(() => normalizeStats(loadJSON(KEYS.stats), dateKey()));
   const [unknownWeight, setUnknownWeight] = useState(() =>
@@ -47,18 +53,27 @@ export default function App() {
   const [script, setScript] = useState(() => loadRaw(KEYS.script) ?? 'all');
   const [extended, setExtended] = useState(() => loadRaw(KEYS.extended) === 'true');
   const [streak, setStreak] = useState(0);
+  // 리포트가 글자 기준인지 단어 기준인지. 마지막으로 연습한 쪽을 따라간다.
+  const [mode, setMode] = useState(() => (loadRaw(KEYS.mode) === 'words' ? 'words' : 'kana'));
 
   // 스트릭은 '오늘 이미 반영했는지' 를 즉시 알아야 해서 ref 를 원본으로 둔다.
   const streakRef = useRef(0);
   const lastPlayedRef = useRef(null);
 
-  const deck = useMemo(() => selectDeck({ script, extended }), [script, extended]);
+  const kanaDeck = useMemo(() => selectDeck({ script, extended }), [script, extended]);
+  const deck = view === 'words' ? words : kanaDeck;
+  const reportDeck = mode === 'words' ? words : kanaDeck;
 
   useEffect(() => {
     const onHashChange = () => setView(viewFromHash());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  useEffect(() => {
+    if (view === 'practice') setMode('kana');
+    else if (view === 'words') setMode('words');
+  }, [view]);
 
   useEffect(() => {
     saveJSON(KEYS.weights, weights);
@@ -79,6 +94,10 @@ export default function App() {
   useEffect(() => {
     saveRaw(KEYS.extended, String(extended));
   }, [extended]);
+
+  useEffect(() => {
+    saveRaw(KEYS.mode, mode);
+  }, [mode]);
 
   useEffect(() => {
     const resumed = resumeStreak(loadRaw(KEYS.lastPlayed), loadRaw(KEYS.streak));
@@ -127,8 +146,20 @@ export default function App() {
       setStats((previous) => {
         const today = dateKey();
         const rolled =
-          previous.todayDate === today ? previous : { ...previous, today: 0, todayDate: today };
-        return { ...rolled, [result]: rolled[result] + 1, today: rolled.today + 1 };
+          previous.todayDate === today
+            ? previous
+            : { ...previous, today: 0, todayDate: today, todayChars: {} };
+
+        const day = rolled.history[today] ?? EMPTY_TALLY;
+        const entry = rolled.todayChars[char] ?? EMPTY_TALLY;
+
+        return {
+          ...rolled,
+          [result]: rolled[result] + 1,
+          today: rolled.today + 1,
+          history: { ...rolled.history, [today]: { ...day, [result]: day[result] + 1 } },
+          todayChars: { ...rolled.todayChars, [char]: { ...entry, [result]: entry[result] + 1 } },
+        };
       });
 
       bumpStreak();
@@ -141,11 +172,12 @@ export default function App() {
     streakRef.current = 0;
     lastPlayedRef.current = null;
     setStreak(0);
-    setWeights(normalizeWeights(null, allCharacters));
+    setWeights(normalizeWeights(null, LEARNABLES));
     setStats(normalizeStats(null, dateKey()));
     setUnknownWeight(DEFAULT_UNKNOWN_WEIGHT);
     setScript('all');
     setExtended(false);
+    setMode('kana');
   }, []);
 
   return (
@@ -163,11 +195,21 @@ export default function App() {
         )}
       </nav>
 
-      {view === 'home' && <Home onNavigate={navigate} deckSize={deck.length} />}
+      {view === 'home' && (
+        <Home onNavigate={navigate} deckSize={kanaDeck.length} wordCount={words.length} />
+      )}
 
-      {view === 'practice' && <Practice deck={deck} weights={weights} onAnswer={handleAnswer} />}
+      {view === 'practice' && (
+        <Practice deck={deck} weights={weights} onAnswer={handleAnswer} mode="kana" />
+      )}
 
-      {view === 'stats' && <Stats stats={stats} weights={weights} deck={deck} />}
+      {view === 'words' && (
+        <Practice deck={deck} weights={weights} onAnswer={handleAnswer} mode="words" />
+      )}
+
+      {view === 'stats' && (
+        <Stats stats={stats} weights={weights} deck={reportDeck} mode={mode} />
+      )}
 
       {view === 'settings' && (
         <SettingsView
@@ -177,7 +219,7 @@ export default function App() {
           onExtendedChange={setExtended}
           unknownWeight={unknownWeight}
           onUnknownWeightChange={setUnknownWeight}
-          deckSize={deck.length}
+          deckSize={kanaDeck.length}
           onReset={resetProgress}
         />
       )}
