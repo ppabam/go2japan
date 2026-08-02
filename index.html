@@ -29,6 +29,16 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // beforeinstallprompt 는 로드 직후 한 번 발생하고 끝난다.
+      // React 가 마운트되기 전에 지나가버리므로 여기서 먼저 붙잡아 둔다.
+      window.__go2japanInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault();
+        window.__go2japanInstallPrompt = event;
+        window.dispatchEvent(new Event('go2japan:installprompt'));
+      });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

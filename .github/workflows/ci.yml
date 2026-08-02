@@ -26,3 +26,8 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # 네이티브 앱은 이 단일 파일 빌드를 그대로 싣는다.
+      # 외부 리소스 참조가 남으면 sync 스크립트가 실패하므로 여기서 걸린다.
+      - name: Build native app bundle
+        run: npm run build:app

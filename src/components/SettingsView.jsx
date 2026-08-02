@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import InstallSection from './InstallSection';
 import { SCRIPTS } from '../data';
 
 export default function SettingsView({
@@ -72,6 +73,8 @@ export default function SettingsView({
           높을수록 &apos;모름&apos;이나 &apos;오답&apos;을 선택한 카드가 미친듯이 나옵니다.
         </p>
       </div>
+
+      <InstallSection />
 
       <div className="settings-group">
         <span className="settings-label">진행 상황</span>

@@ -1,0 +1,9 @@
+node_modules/
+.expo/
+dist/
+android/
+ios/
+*.log
+
+# npm run build:app 이 만드는 웹 번들 (약 400 kB)
+web/

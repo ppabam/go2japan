@@ -13,7 +13,8 @@
 - **학습 리포트** — 정답률, 누적 문항, 오늘 푼 문제, 마스터한 글자 수, 제일 약한 글자 Top 5.
 - **발음 듣기** — 브라우저 내장 TTS로 일본어 발음을 들려줍니다.
 - **키보드 지원** — 보기 `1`~`3`, 모르겠음 `0`, 다음 `Space`, 발음 `S`.
-- **PWA** — 홈 화면에 설치하면 오프라인에서도 동작합니다.
+- **PWA** — 설정에서 바로 홈 화면에 설치할 수 있고, 오프라인에서도 동작합니다.
+- **네이티브 앱** — 같은 코드를 WebView 로 감싼 안드로이드/iOS 앱이 [`app/`](./app) 에 있습니다.
 
 ## 학습 문자
 
@@ -35,9 +36,12 @@ npm test           # 유닛 테스트
 npm run lint       # oxlint
 npm run build      # 프로덕션 빌드
 npm run preview    # 빌드 결과 확인 (PWA 동작은 여기서 확인)
+npm run build:app  # 네이티브 앱에 넣을 단일 파일 빌드
 ```
 
 Node 20 이상이 필요합니다.
+
+네이티브 앱(안드로이드 APK / iOS)은 [`app/README.md`](./app/README.md) 를 보세요.
 
 ## 기술 스택
 
@@ -58,10 +62,14 @@ src/
     storage.js       localStorage 안전 접근, 저장본 정규화·마이그레이션
     streak.js        연속 학습일 날짜 계산
     quiz.js          가중치 출제와 보기 생성
+    install.js       설치 안내 방식 판별 (PWA 프롬프트 / iOS 수동 / 네이티브 앱)
+  hooks/
+    useInstallPrompt.js
   components/
-    Home.jsx  Practice.jsx  Stats.jsx  SettingsView.jsx
+    Home.jsx  Practice.jsx  Stats.jsx  SettingsView.jsx  InstallSection.jsx
+app/                 Expo WebView 래퍼 (안드로이드/iOS)
 scripts/
-  generate-icons.py  PWA 아이콘 생성 (디자인 변경 시에만 실행)
+  generate-icons.py  웹·앱 아이콘 생성 (디자인 변경 시에만 실행)
 ```
 
 모든 진행 상황은 `localStorage`의 `go2japan-*` 키에 저장됩니다.
