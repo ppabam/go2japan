@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Flame, Home as HomeIcon } from 'lucide-react';
 import Home from './components/Home';
+import PetView from './components/PetView';
 import Practice from './components/Practice';
 import SettingsView from './components/SettingsView';
 import Stats from './components/Stats';
 import { allCharacters, selectDeck } from './data';
 import { words } from './words';
+import { applyAnswer, decayCat, newCat, normalizeCat } from './lib/cat';
 import { dateKey, nextStreak, resumeStreak } from './lib/streak';
 import {
   DEFAULT_WEIGHT,
@@ -25,9 +27,11 @@ import {
 } from './lib/storage';
 import './App.css';
 
-const VIEWS = ['home', 'practice', 'words', 'stats', 'settings'];
+const VIEWS = ['home', 'practice', 'words', 'pet', 'stats', 'settings'];
 const DEFAULT_UNKNOWN_WEIGHT = 5;
 const CORRECT_WEIGHT_STEP = 0.5;
+// 앱을 켜둔 동안에도 고양이는 배가 고파진다.
+const CAT_TICK_MS = 60_000;
 
 // 글자와 단어가 각자 가중치를 갖는다. 저장본을 정규화할 때 둘 다 넘겨야
 // 새로 추가된 쪽의 가중치가 비어 출제가 망가지지 않는다.
@@ -55,6 +59,7 @@ export default function App() {
   const [streak, setStreak] = useState(0);
   // 리포트가 글자 기준인지 단어 기준인지. 마지막으로 연습한 쪽을 따라간다.
   const [mode, setMode] = useState(() => (loadRaw(KEYS.mode) === 'words' ? 'words' : 'kana'));
+  const [cat, setCat] = useState(() => normalizeCat(loadJSON(KEYS.cat), Date.now()));
 
   // 스트릭은 '오늘 이미 반영했는지' 를 즉시 알아야 해서 ref 를 원본으로 둔다.
   const streakRef = useRef(0);
@@ -100,6 +105,28 @@ export default function App() {
   }, [mode]);
 
   useEffect(() => {
+    saveJSON(KEYS.cat, cat);
+  }, [cat]);
+
+  // 화면을 켜둔 채로도 시간이 흐르게 한다. 탭이 숨겨져 있으면 굳이 돌리지 않고,
+  // 다시 보일 때 한 번에 반영한다 (감쇠는 경과 시간 기준이라 결과가 같다).
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now();
+      setCat((previous) => decayCat(previous, now));
+    };
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') tick();
+    }, CAT_TICK_MS);
+
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, []);
+
+  useEffect(() => {
     const resumed = resumeStreak(loadRaw(KEYS.lastPlayed), loadRaw(KEYS.streak));
     streakRef.current = resumed.streak;
     lastPlayedRef.current = resumed.lastPlayed;
@@ -132,7 +159,7 @@ export default function App() {
   }, []);
 
   const handleAnswer = useCallback(
-    ({ char, result }) => {
+    ({ char, result, elapsedMs = 0 }) => {
       setWeights((previous) => {
         const current = previous[char] ?? DEFAULT_WEIGHT;
         const updated =
@@ -167,6 +194,9 @@ export default function App() {
         };
       });
 
+      const now = Date.now();
+      setCat((previous) => applyAnswer(previous, { result, elapsedMs }, now));
+
       bumpStreak();
     },
     [bumpStreak, unknownWeight],
@@ -183,6 +213,7 @@ export default function App() {
     setScript('all');
     setExtended(false);
     setMode('kana');
+    setCat(newCat(Date.now()));
   }, []);
 
   return (
@@ -205,11 +236,15 @@ export default function App() {
       )}
 
       {view === 'practice' && (
-        <Practice deck={deck} weights={weights} onAnswer={handleAnswer} mode="kana" />
+        <Practice deck={deck} weights={weights} cat={cat} onAnswer={handleAnswer} mode="kana" />
       )}
 
       {view === 'words' && (
-        <Practice deck={deck} weights={weights} onAnswer={handleAnswer} mode="words" />
+        <Practice deck={deck} weights={weights} cat={cat} onAnswer={handleAnswer} mode="words" />
+      )}
+
+      {view === 'pet' && (
+        <PetView cat={cat} onNavigate={navigate} fedToday={stats.history[dateKey()]?.correct ?? 0} />
       )}
 
       {view === 'stats' && (

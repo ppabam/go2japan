@@ -1,4 +1,4 @@
-import { BarChart2, BookOpen, Play, Settings } from 'lucide-react';
+import { BarChart2, BookOpen, Cat as CatIcon, Play, Settings } from 'lucide-react';
 
 export default function Home({ onNavigate, deckSize, wordCount }) {
   return (
@@ -16,6 +16,10 @@ export default function Home({ onNavigate, deckSize, wordCount }) {
         </button>
         <button className="btn btn-word" onClick={() => onNavigate('words')}>
           <BookOpen size={24} aria-hidden="true" /> 쉬운 단어 연습하기
+        </button>
+        <button className="btn btn-pet" onClick={() => onNavigate('pet')}>
+          <CatIcon size={24} aria-hidden="true" />{' '}
+          <span lang="ja">わたしのねこ</span>
         </button>
         <button className="btn btn-secondary" onClick={() => onNavigate('stats')}>
           <BarChart2 size={24} aria-hidden="true" /> 내 처참한 실력 보기
