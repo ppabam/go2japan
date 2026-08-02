@@ -390,7 +390,7 @@ body {
 
 /* 꼬리는 기분에 따라 흔드는 속도가 다르다 */
 .cat-tail {
-  transform-origin: 76px 74px;
+  transform-origin: 65px 75px;
   animation: catTail 2.6s ease-in-out infinite;
 }
 .cat-happy .cat-tail {
@@ -440,14 +440,48 @@ body {
   }
 }
 @keyframes catPace {
-  0%,
-  100% {
-    transform: translateX(-6px);
+  0% {
+    transform: translateX(-20px) scaleX(1);
+  }
+  45% {
+    transform: translateX(20px) scaleX(1);
   }
   50% {
-    transform: translateX(6px);
+    transform: translateX(20px) scaleX(-1);
+  }
+  95% {
+    transform: translateX(-20px) scaleX(-1);
+  }
+  100% {
+    transform: translateX(-20px) scaleX(1);
   }
 }
+
+@keyframes walkLegFrontLeft {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-4px); }
+  50% { transform: translateY(0); }
+}
+@keyframes walkLegFrontRight {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-4px); }
+}
+@keyframes walkLegBackLeft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(-4px); }
+}
+@keyframes walkLegBackRight {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-4px); }
+  50% { transform: translateY(0); }
+}
+
+.cat-idle .cat-leg-left { animation: walkLegFrontLeft 1.2s infinite; }
+.cat-idle .cat-leg-right { animation: walkLegFrontRight 1.2s infinite; }
+.cat-idle .cat-leg-back-left { animation: walkLegBackLeft 1.2s infinite; }
+.cat-idle .cat-leg-back-right { animation: walkLegBackRight 1.2s infinite; }
 @keyframes catHop {
   0%,
   100% {
