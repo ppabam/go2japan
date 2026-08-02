@@ -26,7 +26,7 @@ export default function PetView({ cat, onNavigate, fedToday, now = Date.now() })
       </h2>
 
       <div className="pet-portrait">
-        <Cat mood={mood} />
+        <Cat mood={mood} variant="portrait" />
       </div>
 
       <p className={`pet-status pet-status-${mood}`}>{catStatusText(cat)}</p>

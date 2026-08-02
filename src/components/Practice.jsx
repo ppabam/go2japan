@@ -8,11 +8,11 @@ import { buildQuestion, optionLabel } from '../lib/quiz';
 
 const CORRECT_MESSAGES = ['오~ 천재인데?', '이걸 맞추다니!', '일본인 아니야?', '갓벽하다!', '폼 미쳤다 ㄷㄷ'];
 const WRONG_MESSAGES = [
-  '아깝다냥! 다시 해보라냥',
-  '이걸 틀리냥?',
-  '정신 안 차리냥? 실망이다냥',
-  '아... 내 눈물이 앞을 가린다냥',
-  '괜찮다냥! 고양이도 나무에서 떨어진다냥',
+  '아깝다! 다시 해봐',
+  '이걸 틀려?',
+  '정신 안 차려?',
+  '아... 눈물이 앞을 가린다',
+  '괜찮아 원숭이도 나무에서 떨어지지',
 ];
 
 // 맞혔을 때만 자동으로 넘어간다. 틀렸을 땐 정답을 읽을 시간을 뺏지 않는다.
@@ -99,9 +99,9 @@ export default function Practice({ deck, weights, cat, onAnswer, mode = 'kana' }
       message = randomOf(CORRECT_MESSAGES);
       confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
     } else if (isIdk) {
-      message = `모르겠냥? 정답은 버튼을 보라냥!`;
+      message = `정답: ${optionLabel(question.answer)}`;
     } else {
-      message = randomOf(WRONG_MESSAGES);
+      message = `${randomOf(WRONG_MESSAGES)} (정답: ${optionLabel(question.answer)})`;
     }
 
     setAnswered({ choice, result, message });
