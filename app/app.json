@@ -36,6 +36,12 @@
         }
       ],
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "258364f9-845d-491c-94ec-5e73f186288f"
+      }
+    },
+    "owner": "mario24"
   }
 }
